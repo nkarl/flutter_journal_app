@@ -27,7 +27,7 @@ class _EntriesPageState extends State<EntriesPage> {
     });
   }
 
-  Future<void> _deleteEntry(String entryId, String title) async {
+  Future<bool> _deleteEntry(String entryId, String title) async {
     final bool? isDeleting = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -56,15 +56,18 @@ class _EntriesPageState extends State<EntriesPage> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Entry "$title" deleted')));
+          return true;
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Failed to delete entry "$title"')),
             );
           }
+          return false;
         }
       }
     }
+    return false;
   }
 
   @override
@@ -107,28 +110,45 @@ class _EntriesPageState extends State<EntriesPage> {
                 final entry = entries[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
-                  child: ListTile(
-                    title: Text(entry.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          entry.content.length > 50
-                              ? '${entry.content.substring(0, 50)}...'
-                              : entry.content,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Created: ${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                  // wrapper fo each entry to swipe-to-delete
+                  child: Dismissible(
+                    key: Key(entry.entryId),
+                    direction: DismissDirection.endToStart, // swipe RTL
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: const Icon(Icons.delete, color: Colors.white),
                     ),
-                    // Delete button (unchanged, ready for your implementation)
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteEntry(entry.entryId, entry.title),
-                      tooltip: 'Delete entry',
+                    confirmDismiss: (direction) async {
+                      return await _deleteEntry(entry.entryId, entry.title);
+                    },
+                    onDismissed: (_) => _refreshEntries(),
+                    // actual entry
+                    child: ListTile(
+                      title: Text(entry.title),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            entry.content.length > 50
+                                ? '${entry.content.substring(0, 50)}...'
+                                : entry.content,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Created: ${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                      // Delete button (unchanged, ready for your implementation)
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () =>
+                            _deleteEntry(entry.entryId, entry.title),
+                        tooltip: 'Delete entry',
+                      ),
                     ),
                   ),
                 );
