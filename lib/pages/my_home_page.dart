@@ -1,5 +1,6 @@
 // File: lib/pages/my_home_page.dart
 import 'package:flutter/material.dart';
+import 'package:journal_app/pages/entries_page.dart';
 
 class MyHomePage extends StatefulWidget {
   // constructor
@@ -61,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Placeholder: Show a snackbar to indicate saving (replace with actual save logic)
+                  // Placeholder: Show a SnackBar to indicate saving (replace with actual save logic)
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
@@ -75,7 +76,16 @@ class _MyHomePageState extends State<MyHomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                TextButton(onPressed: () {}, child: const Text("Journal List")),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const EntriesPage(),
+                      ),
+                    );
+                  },
+                  child: const Text("Journal List"),
+                ),
                 TextButton(onPressed: () {}, child: const Text("Login")),
                 TextButton(onPressed: () {}, child: const Text("Settings")),
               ],
