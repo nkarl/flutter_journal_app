@@ -1,18 +1,66 @@
-// File: lib/pages/my_home_page.dart
+// File: lib/pages/entry_page.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:journal_app/models/journal_entry.dart';
 import 'package:journal_app/pages/entries_page.dart';
+import 'package:journal_app/services/storage_service.dart';
+import 'package:uuid/uuid.dart';
 
-class MyHomePage extends StatefulWidget {
+class EntryPage extends StatefulWidget {
   // constructor
-  const MyHomePage({super.key, this.title = "New Journal Entry"});
+  const EntryPage({super.key, this.title = "New Journal Entry"});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<EntryPage> createState() => _EntryPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _EntryPageState extends State<EntryPage> {
+  final _titleController = TextEditingController();
+  final _contentController = TextEditingController();
+  final _storageService = StorageService();
+
+  @override
+  void initState() {
+    super.initState();
+    _storageService.initializeFile();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  void _saveEntry() async {
+    if (_titleController.text.isNotEmpty &&
+        _contentController.text.isNotEmpty) {
+      final entry = JournalEntry(
+        entryId: const Uuid().v4(),
+        title: _titleController.text,
+        content: _contentController.text,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      if (kDebugMode) {
+        print("Entry saved; ${entry.toJson()}");
+      }
+      await _storageService.saveEntry(entry);
+      _titleController.clear();
+      _contentController.clear();
+    } else {
+      if (kDebugMode) {
+        if (_titleController.text.isEmpty) {
+          print("Title cannot be empty.");
+        } else if (_contentController.text.isEmpty) {
+          print("Title cannot be empty.");
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -35,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             // Text field for Entry Title
             TextField(
+              controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Title',
                 border: OutlineInputBorder(),
@@ -45,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
             // Expanded Text Field for Entry Content
             Expanded(
               child: TextField(
+                controller: _contentController,
                 decoration: const InputDecoration(
                   labelText: "Content",
                   border: OutlineInputBorder(),
@@ -63,6 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ElevatedButton(
                 onPressed: () {
                   // Placeholder: Show a SnackBar to indicate saving (replace with actual save logic)
+                  _saveEntry();
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('Entry saved!')));

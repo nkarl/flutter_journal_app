@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/my_home_page.dart';
+import 'pages/entry_page.dart';
 
 void main() {
   runApp(const MyJournalApp());
@@ -31,7 +31,7 @@ class MyJournalApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
-      home: const MyHomePage(), // title: 'Flutter Journal App Home Page'),
+      home: const EntryPage(), // title: 'Flutter Journal App Home Page'),
     );
   }
 }

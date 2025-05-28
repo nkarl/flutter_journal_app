@@ -36,6 +36,7 @@ class StorageService {
     await file.writeAsString(jsonEncode(jsonList));
     if (kDebugMode) {
       print('Saving to file path: ${file.path}');
+      print(await file.readAsString(encoding: utf8));
       print(jsonList);
     }
   }
