@@ -27,6 +27,46 @@ class _EntriesPageState extends State<EntriesPage> {
     });
   }
 
+  Future<void> _deleteEntry(String entryId, String title) async {
+    final bool? isDeleting = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Entry"),
+          content: Text("Are you sure you want to delete '$title'?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (isDeleting == true) {
+      final success = await _storageService.deleteEntry(entryId);
+      if (success) {
+        _refreshEntries();
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Entry "$title" deleted')));
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to delete entry "$title"')),
+            );
+          }
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,10 +127,7 @@ class _EntriesPageState extends State<EntriesPage> {
                     // Delete button (unchanged, ready for your implementation)
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => {
-                        // TODO: implement DELETE button for each entry
-                        /* _deleteEntry(entry.entryId, entry.title) */
-                      },
+                      onPressed: () => _deleteEntry(entry.entryId, entry.title),
                       tooltip: 'Delete entry',
                     ),
                   ),

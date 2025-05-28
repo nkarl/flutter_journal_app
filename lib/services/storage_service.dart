@@ -55,4 +55,37 @@ class StorageService {
       return [];
     }
   }
+
+  // Delete a journal entry by Id.
+  Future<bool> deleteEntry(String entryId) async {
+    var success = false;
+    try {
+      final file = await _localFile;
+      final String contents = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(contents);
+
+      // needed to check if the entry is actually deleted.
+      final int previousLength = jsonList.length;
+
+      // find and remove the entry with matching Id
+      jsonList.removeWhere((json) => json['entryId'] == entryId);
+
+      // check if entry is actually deleted.
+      if (jsonList.length < previousLength) {
+        await file.writeAsString(jsonEncode(jsonList));
+        success = true;
+      }
+      if (kDebugMode) {
+        success
+            ? print("Entry deleted: $entryId")
+            : print("Entry not found: $entryId");
+      }
+      return success;
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error deleteing entry: $e");
+      }
+      return false;
+    }
+  }
 }
