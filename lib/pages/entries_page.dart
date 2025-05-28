@@ -54,42 +54,49 @@ class _EntriesPageState extends State<EntriesPage> {
           if (entries.isEmpty) {
             return const Center(child: Text('No entries yet'));
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final entry = entries[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8.0),
-                child: ListTile(
-                  title: Text(entry.title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        entry.content.length > 50
-                            ? '${entry.content.substring(0, 50)}...'
-                            : entry.content,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Created: ${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                  // Delete button
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => {
-                      // TODO: implement DELETE button for each entry
-                      /* _deleteEntry(entry.entryId, entry.title) */
-                    },
-                    tooltip: 'Delete entry',
-                  ),
-                ),
-              );
+          return RefreshIndicator(
+            onRefresh: () async {
+              _refreshEntries();
+              // Wait for the future to complete to satisfy RefreshIndicator
+              await _entriesFuture;
             },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: entries.length,
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  child: ListTile(
+                    title: Text(entry.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          entry.content.length > 50
+                              ? '${entry.content.substring(0, 50)}...'
+                              : entry.content,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Created: ${entry.createdAt.day}/${entry.createdAt.month}/${entry.createdAt.year}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    // Delete button (unchanged, ready for your implementation)
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => {
+                        // TODO: implement DELETE button for each entry
+                        /* _deleteEntry(entry.entryId, entry.title) */
+                      },
+                      tooltip: 'Delete entry',
+                    ),
+                  ),
+                );
+              },
+            ),
           );
         },
       ),
