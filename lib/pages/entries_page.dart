@@ -1,5 +1,6 @@
 // File: lib/pages/entries_page.dart
 import 'package:flutter/material.dart';
+import 'package:journal_app/pages/my_home_page.dart';
 
 class EntriesPage extends StatefulWidget {
   const EntriesPage({super.key});
@@ -19,6 +20,16 @@ class _EntriesPageState extends State<EntriesPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(children: <Widget>[]),
+      ),
+      //
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).pop(MaterialPageRoute(builder: (context) => const MyHomePage()));
+        },
+        tooltip: "Add New Entry",
+        child: const Icon(Icons.add),
       ),
     );
   }

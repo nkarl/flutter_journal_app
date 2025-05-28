@@ -78,6 +78,14 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 TextButton(
                   onPressed: () {
+                    /*
+                        TODO: implement cloud Firebase integration
+                     */
+                  },
+                  child: const Text("Login"),
+                ),
+                TextButton(
+                  onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => const EntriesPage(),
@@ -86,8 +94,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   },
                   child: const Text("Journal List"),
                 ),
-                TextButton(onPressed: () {}, child: const Text("Login")),
-                TextButton(onPressed: () {}, child: const Text("Settings")),
+                TextButton(
+                  onPressed: () {
+                    /*
+                        TODO: implement based on app features
+                     */
+                  },
+                  child: const Text("Settings"),
+                ),
               ],
             ),
           ],
