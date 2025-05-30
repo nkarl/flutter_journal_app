@@ -18,6 +18,7 @@ class _EntriesPageState extends State<EntriesPage> {
   @override
   void initState() {
     super.initState();
+    _storageService.initializeFile();
     _refreshEntries();
   }
 
@@ -48,26 +49,22 @@ class _EntriesPageState extends State<EntriesPage> {
       },
     );
 
-    if (isDeleting == true) {
-      final success = await _storageService.deleteEntry(entryId);
-      if (success) {
-        _refreshEntries();
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Entry "$title" deleted')));
-          return true;
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to delete entry "$title"')),
-            );
-          }
-          return false;
-        }
-      }
+    if (isDeleting != true) return false;
+
+    final success = await _storageService.deleteEntry(entryId);
+    if (!mounted) return false;
+
+    if (success) {
+      _refreshEntries();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Entry "$title" deleted')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete entry "$title"')),
+      );
     }
-    return false;
+    return success;
   }
 
   @override
@@ -91,7 +88,17 @@ class _EntriesPageState extends State<EntriesPage> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Error loading entries'));
+            return Center(
+              child: Column(
+                children: [
+                  Text('Error loading entries'),
+                  ElevatedButton(
+                    onPressed: _refreshEntries,
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
           final entries = snapshot.data ?? [];
           if (entries.isEmpty) {
@@ -162,7 +169,7 @@ class _EntriesPageState extends State<EntriesPage> {
         onPressed: () {
           Navigator.of(
             context,
-          ).pop(MaterialPageRoute(builder: (context) => const EntryPage()));
+          ).push(MaterialPageRoute(builder: (context) => const EntryPage()));
         },
         tooltip: "Add New Entry",
         child: const Icon(Icons.add),

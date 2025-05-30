@@ -26,6 +26,13 @@ class _EntryPageState extends State<EntryPage> {
   void initState() {
     super.initState();
     _storageService.initializeFile();
+    _loadLoginState();
+  }
+
+  void _loadLoginState() {
+    setState(() {
+      _isSignedIn = FirebaseAuth.instance.currentUser != null;
+    });
   }
 
   @override
@@ -61,7 +68,7 @@ class _EntryPageState extends State<EntryPage> {
 
       _titleController.clear();
       _contentController.clear();
-      if (!mounted) return;
+      if (!mounted) return; // Guard against using context after async gap
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
@@ -133,10 +140,12 @@ class _EntryPageState extends State<EntryPage> {
                   child: TextButton(
                     onPressed: () async {
                       if (_isSignedIn) {
+                        if (!mounted) return;
                         await FirebaseAuth.instance.signOut();
                         setState(() {
                           _isSignedIn = false;
                         });
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Signed out')),
                         );
