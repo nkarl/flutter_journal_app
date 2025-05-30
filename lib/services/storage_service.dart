@@ -45,8 +45,6 @@ class StorageService {
   }
 
   // Read all journal entries from JSON.
-  // File: lib/services/storage_service.dart
-  // Replace readEntries method
   Future<List<JournalEntry>> readEntries() async {
     try {
       final file = await _localFile;
@@ -64,31 +62,62 @@ class StorageService {
           final snapshot = await ref.get();
           if (kDebugMode) {
             print('Realtime Database snapshot value: ${snapshot.value}');
+            print('Snapshot value type: ${snapshot.value.runtimeType}');
           }
           if (snapshot.exists && snapshot.value != null) {
             // Convert snapshot.value to Map<String, dynamic>
-            final cloudData = (snapshot.value as Map).cast<String, dynamic>();
-            final cloudTimestamp = DateTime.parse(
-              cloudData['timestamp'] as String? ?? '1970-01-01T00:00:00Z',
-            );
-            final localTimestamp = await _getLocalTimestamp();
+            final rawData = snapshot.value;
+            if (rawData is Map) {
+              final cloudData = <String, dynamic>{};
+              rawData.forEach((key, value) {
+                if (key is String) {
+                  cloudData[key] = value;
+                }
+              });
+              if (cloudData.containsKey('entries') && cloudData.containsKey('timestamp')) {
+                final cloudTimestamp = DateTime.parse(
+                  cloudData['timestamp'] as String? ?? '1970-01-01T00:00:00Z',
+                );
+                final localTimestamp = await _getLocalTimestamp();
 
-            if (cloudTimestamp.isAfter(localTimestamp)) {
-              final cloudEntries =
-                  (cloudData['entries'] as List<dynamic>?)
-                      ?.map(
-                        (json) =>
-                            JournalEntry.fromJson(json as Map<String, dynamic>),
-                      )
-                      .toList() ??
-                  [];
-              localEntries = cloudEntries;
-              await file.writeAsString(
-                jsonEncode(cloudEntries.map((e) => e.toJson()).toList()),
-              );
+                if (cloudTimestamp.isAfter(localTimestamp)) {
+                  final cloudEntriesList =
+                      cloudData['entries'] as List<dynamic>?;
+                  if (cloudEntriesList != null) {
+                    final cloudEntries = cloudEntriesList
+                        .map((json) {
+                          if (json is Map) {
+                            return JournalEntry.fromJson(
+                              json.cast<String, dynamic>(),
+                            );
+                          }
+                          return null;
+                        })
+                        .where((entry) => entry != null)
+                        .cast<JournalEntry>()
+                        .toList();
+                    localEntries = cloudEntries;
+                    await file.writeAsString(
+                      jsonEncode(cloudEntries.map((e) => e.toJson()).toList()),
+                    );
+                    if (kDebugMode) {
+                      print(
+                        'Restored ${localEntries.length} entries from Realtime Database',
+                      );
+                    }
+                  }
+                }
+              } else {
+                if (kDebugMode) {
+                  print(
+                    'Invalid Realtime Database data structure: missing entries or timestamp',
+                  );
+                }
+              }
+            } else {
               if (kDebugMode) {
                 print(
-                  'Restored ${localEntries.length} entries from Realtime Database',
+                  'Realtime Database data is not a Map: ${rawData.runtimeType}',
                 );
               }
             }
