@@ -1,13 +1,13 @@
-// File: lib/pages/entry_page.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journal_app/models/journal_entry.dart';
 import 'package:journal_app/pages/entries_page.dart';
+import 'package:journal_app/pages/login_page.dart';
 import 'package:journal_app/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
 
 class EntryPage extends StatefulWidget {
-  // constructor
   const EntryPage({super.key, this.title = "New Journal Entry"});
 
   final String title;
@@ -20,6 +20,7 @@ class _EntryPageState extends State<EntryPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _storageService = StorageService();
+  bool _isSignedIn = false; // Default to offline state
 
   @override
   void initState() {
@@ -48,40 +49,53 @@ class _EntryPageState extends State<EntryPage> {
         print("Entry saved; ${entry.toJson()}");
       }
       await _storageService.saveEntry(entry);
+
+      // If user is signed in, attempt to sync with Firebase (to be implemented)
+      if (_isSignedIn) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (kDebugMode) {
+          print('User is signed in: ${user?.uid}');
+        }
+        // TODO: Implement Firebase sync logic here
+      }
+
       _titleController.clear();
       _contentController.clear();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
     } else {
-      if (kDebugMode) {
-        if (_titleController.text.isEmpty) {
-          print("Title cannot be empty.");
-        } else if (_contentController.text.isEmpty) {
-          print("Title cannot be empty.");
-        }
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _titleController.text.isEmpty
+                ? 'Title cannot be empty.'
+                : 'Content cannot be empty.',
+          ),
+        ),
+      );
     }
+  }
+
+  void _onLoginSuccess() {
+    setState(() {
+      _isSignedIn = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
       body: Padding(
-        // Padding is a layout widget. It takes a column of widgets as child
-        // and add padding around it.
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            // Text field for Entry Title
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -90,9 +104,7 @@ class _EntryPageState extends State<EntryPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-
-            // Expanded Text Field for Entry Content
-            Expanded(
+            Flexible(
               child: TextField(
                 controller: _contentController,
                 decoration: const InputDecoration(
@@ -106,52 +118,59 @@ class _EntryPageState extends State<EntryPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-
-            // Button to save Entry
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Placeholder: Show a SnackBar to indicate saving (replace with actual save logic)
-                  _saveEntry();
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
-                },
+                onPressed: _saveEntry,
                 child: const Text('Save Entry'),
               ),
             ),
             const SizedBox(height: 16.0),
-
-            // a row of buttons for navigating to the journal list, login and settings
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                TextButton(
-                  onPressed: () {
-                    /*
-                        TODO: implement cloud Firebase integration
-                     */
-                  },
-                  child: const Text("Login"),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () async {
+                      if (_isSignedIn) {
+                        await FirebaseAuth.instance.signOut();
+                        setState(() {
+                          _isSignedIn = false;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Signed out')),
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                LoginPage(onLoginSuccess: _onLoginSuccess),
+                          ),
+                        );
+                      }
+                    },
+                    child: Text(_isSignedIn ? 'Sign Out' : 'Login'),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const EntriesPage(),
-                      ),
-                    );
-                  },
-                  child: const Text("Journal List"),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const EntriesPage(),
+                        ),
+                      );
+                    },
+                    child: const Text("Journal List"),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    /*
-                        TODO: implement based on app features
-                     */
-                  },
-                  child: const Text("Settings"),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () {
+                      // TODO: implement based on app features
+                    },
+                    child: const Text("Settings"),
+                  ),
                 ),
               ],
             ),
