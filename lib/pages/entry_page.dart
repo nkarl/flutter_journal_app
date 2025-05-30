@@ -1,9 +1,11 @@
+// File: lib/pages/entry_page.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journal_app/models/journal_entry.dart';
 import 'package:journal_app/pages/entries_page.dart';
 import 'package:journal_app/pages/login_page.dart';
+import 'package:journal_app/pages/settings_page.dart';
 import 'package:journal_app/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -21,6 +23,8 @@ class _EntryPageState extends State<EntryPage> {
   final _contentController = TextEditingController();
   final _storageService = StorageService();
   bool _isSignedIn = false; // Default to offline state
+  String? _syncMessage;
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -57,18 +61,9 @@ class _EntryPageState extends State<EntryPage> {
       }
       await _storageService.saveEntry(entry);
 
-      // If user is signed in, attempt to sync with Firebase (to be implemented)
-      if (_isSignedIn) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (kDebugMode) {
-          print('User is signed in: ${user?.uid}');
-        }
-        // TODO: Implement Firebase sync logic here
-      }
-
       _titleController.clear();
       _contentController.clear();
-      if (!mounted) return; // Guard against using context after async gap
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
@@ -83,6 +78,77 @@ class _EntryPageState extends State<EntryPage> {
         ),
       );
     }
+  }
+
+  Future<void> _syncEntries() async {
+    setState(() {
+      _isSyncing = true;
+      _syncMessage = 'Syncing to cloud...';
+    });
+
+    if (!_isSignedIn) {
+      setState(() {
+        _isSyncing = false;
+        _syncMessage = 'Please sign in to sync';
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please sign in to sync')));
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _syncMessage = null;
+          });
+        }
+      });
+      return;
+    }
+
+    try {
+      final success = await _storageService.syncToRealtimeDatabase().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          if (kDebugMode) {
+            print('Sync operation timed out after 30 seconds');
+          }
+          return false;
+        },
+      );
+
+      setState(() {
+        _isSyncing = false;
+        _syncMessage = success
+            ? 'Synced to cloud!'
+            : 'Cloud sync not available. Try again.';
+      });
+      if (!success && !mounted) return;
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cloud sync not enabled or failed')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isSyncing = false;
+        _syncMessage = 'Cloud sync not available. Try again.';
+      });
+      if (kDebugMode) {
+        print('Sync error: $e');
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cloud sync not enabled or failed')),
+      );
+    }
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _syncMessage = null;
+        });
+      }
+    });
   }
 
   void _onLoginSuccess() {
@@ -125,12 +191,37 @@ class _EntryPageState extends State<EntryPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveEntry,
-                child: const Text('Save Entry'),
+            if (_syncMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Text(
+                  _syncMessage!,
+                  style: TextStyle(
+                    color:
+                        _isSyncing ||
+                            _syncMessage!.contains('failed') ||
+                            _syncMessage!.contains('sign in')
+                        ? Colors.red
+                        : Colors.green,
+                  ),
+                ),
               ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _saveEntry,
+                    child: const Text('Save Entry'),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSignedIn && !_isSyncing ? _syncEntries : null,
+                    child: const Text('Sync'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16.0),
             Row(
@@ -176,7 +267,11 @@ class _EntryPageState extends State<EntryPage> {
                 Flexible(
                   child: TextButton(
                     onPressed: () {
-                      // TODO: implement based on app features
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsPage(),
+                        ),
+                      );
                     },
                     child: const Text("Settings"),
                   ),
