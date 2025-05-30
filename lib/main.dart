@@ -6,15 +6,13 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  ).catchError((e) {
     if (kDebugMode) {
       print('Firebase initialization failed: $e');
     }
-  }
+  });
   runApp(const MyJournalApp());
 }
 

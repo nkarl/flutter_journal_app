@@ -15,7 +15,8 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void dispose() {
@@ -24,10 +25,99 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _login() async {
+  // Email validation (basic check for @ and domain)
+  bool _isValidEmail(String email) {
+    if (email.isEmpty) return false;
+    return RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email);
+  }
+
+  // Password validation (no spaces or invalid characters)
+  bool _isValidPassword(String password) {
+    if (password.isEmpty) return false;
+    return RegExp(
+      r'^(?=.*?[a-zA-Z])(?=.*?[0-9]).{8,}$',
+    ).hasMatch(password);
+  }
+
+  Future<void> _signUp() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _isLoading = false;
+        _emailError = 'Invalid email format';
+      });
+      return;
+    }
+
+    if (!_isValidPassword(password)) {
+      setState(() {
+        _isLoading = false;
+        _passwordError = 'Password must be at least 8 characters, with letters and numbers';
+      });
+      return;
+    }
+
+    try {
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (userCredential.user != null) {
+        if (kDebugMode) {
+          print('User signed up: ${userCredential.user!.uid}');
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Signup successful!')),
+        );
+        widget.onLoginSuccess?.call();
+        Navigator.of(context).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _isLoading = false;
+        switch (e.code) {
+          case 'email-already-in-use':
+            _emailError = 'Email is already registered';
+            break;
+          case 'invalid-email':
+            _emailError = 'Invalid email format';
+            break;
+          case 'weak-password':
+            _passwordError = 'Password is too weak';
+            break;
+          case 'unknown':
+            _emailError = 'Signup failed: Please check your network or try again later';
+            break;
+          default:
+            _emailError = 'Error: ${e.message}';
+        }
+      });
+      if (kDebugMode) print('Signup error: $e');
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _emailError = 'Failed to signup';
+      });
+      if (kDebugMode) print('Signup error: $e');
+    }
+  }
+
+  Future<void> _logIn() async {
+    setState(() {
+      _isLoading = true;
+      _emailError = null;
+      _passwordError = null;
     });
 
     final email = _emailController.text.trim();
@@ -36,7 +126,24 @@ class _LoginPageState extends State<LoginPage> {
     if (email.isEmpty || password.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Please enter both email and password';
+        _emailError = email.isEmpty ? 'Email is required' : null;
+        _passwordError = password.isEmpty ? 'Password is required' : null;
+      });
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _isLoading = false;
+        _emailError = 'Invalid email format';
+      });
+      return;
+    }
+
+    if (!_isValidPassword(password)) {
+      setState(() {
+        _isLoading = false;
+        _passwordError = 'Invalid password format';
       });
       return;
     }
@@ -53,9 +160,9 @@ class _LoginPageState extends State<LoginPage> {
           print('User signed in: ${userCredential.user!.uid}');
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login successful!')),
+        );
         widget.onLoginSuccess?.call();
         Navigator.of(context).pop();
       }
@@ -65,26 +172,22 @@ class _LoginPageState extends State<LoginPage> {
         switch (e.code) {
           case 'user-not-found':
           case 'wrong-password':
-            _errorMessage = 'Invalid email or password';
+            _passwordError = 'Invalid email or password';
             break;
           case 'invalid-email':
-            _errorMessage = 'Invalid email format';
+            _emailError = 'Invalid email format';
             break;
           default:
-            _errorMessage = 'Failed to sign in: ${e.message}';
+            _emailError = 'Failed to sign in: ${e.message}';
         }
       });
-      if (kDebugMode) {
-        print('Sign-in error: $e');
-      }
+      if (kDebugMode) print('Sign-in error: $e');
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to connect to Firebase. Please try again.';
+        _emailError = 'Failed to connect to Firebase. Please try again';
       });
-      if (kDebugMode) {
-        print('Login error: $e');
-      }
+      if (kDebugMode) print('Login error: $e');
     }
   }
 
@@ -102,23 +205,46 @@ class _LoginPageState extends State<LoginPage> {
               decoration: InputDecoration(
                 labelText: 'Email',
                 border: const OutlineInputBorder(),
-                errorText: _errorMessage,
+                errorText: _emailError,
               ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16.0),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                hintText: '8+ chars, with letters and numbers',
+                errorText: _passwordError,
               ),
               obscureText: true,
             ),
             const SizedBox(height: 16.0),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(onPressed: _login, child: const Text('Login')),
+            _isLoading ? const Center(child: CircularProgressIndicator()) : const SizedBox.shrink(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: <Widget>[
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _logIn,
+                      child: const Text('Login'),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _signUp,
+                      child: const Text('Sign Up'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16.0),
             TextButton(
               onPressed: () {
