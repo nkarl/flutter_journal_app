@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:journal_app/models/journal_entry.dart';
 import 'package:journal_app/pages/entries_page.dart';
-import 'package:journal_app/pages/login_page.dart';
+import 'package:journal_app/pages/signin_page.dart';
 import 'package:journal_app/pages/settings_page.dart';
 import 'package:journal_app/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
@@ -28,12 +28,13 @@ class _EntryPageState extends State<EntryPage> {
 
   @override
   void initState() {
+    // Initialize the state variables that will be used by this widget.
     super.initState();
     _storageService.initializeFile();
-    _loadLoginState();
+    _loadSIgnInState();
   }
 
-  void _loadLoginState() {
+  void _loadSIgnInState() {
     setState(() {
       _isSignedIn = FirebaseAuth.instance.currentUser != null;
     });
@@ -46,9 +47,9 @@ class _EntryPageState extends State<EntryPage> {
     super.dispose();
   }
 
+  // Perform a SAVE action, storing a new entry into the user's JSON.
   void _saveEntry() async {
-    if (_titleController.text.isNotEmpty &&
-        _contentController.text.isNotEmpty) {
+    if (_titleController.text.isNotEmpty && _contentController.text.isNotEmpty) {
       final entry = JournalEntry(
         entryId: const Uuid().v4(),
         title: _titleController.text,
@@ -63,23 +64,22 @@ class _EntryPageState extends State<EntryPage> {
 
       _titleController.clear();
       _contentController.clear();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Entry saved!')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entry saved!')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _titleController.text.isEmpty
-                ? 'Title cannot be empty.'
-                : 'Content cannot be empty.',
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          _titleController.text.isEmpty
+            ? 'Title cannot be empty.'
+            : 'Content cannot be empty.',
           ),
         ),
       );
     }
   }
 
+  // Perform an UPDATE action, syncing the user's JSON to the remote Firebase store.
   Future<void> _syncEntries() async {
     setState(() {
       _isSyncing = true;
@@ -91,22 +91,21 @@ class _EntryPageState extends State<EntryPage> {
         _isSyncing = false;
         _syncMessage = 'Please sign in to sync';
       });
+
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please sign in to sync')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please sign in to sync')));
+
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            _syncMessage = null;
-          });
-        }
+        if (!mounted) return;
+        setState(() {
+          _syncMessage = null;
+        });
       });
       return;
     }
 
     try {
-      final success = await _storageService.syncToRealtimeDatabase().timeout(
+      final isSuccessfulSync = await _storageService.syncToRealtimeDatabase().timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           if (kDebugMode) {
@@ -118,12 +117,12 @@ class _EntryPageState extends State<EntryPage> {
 
       setState(() {
         _isSyncing = false;
-        _syncMessage = success
+        _syncMessage = isSuccessfulSync
             ? 'Synced to cloud!'
             : 'Cloud sync not available. Try again.';
       });
-      if (!success && !mounted) return;
-      if (!success) {
+      if (!isSuccessfulSync && !mounted) return;
+      if (!isSuccessfulSync) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cloud sync not enabled or failed')),
         );
@@ -143,15 +142,14 @@ class _EntryPageState extends State<EntryPage> {
     }
 
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _syncMessage = null;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _syncMessage = null;
+      });
     });
   }
 
-  void _onLoginSuccess() {
+  void _onSignInSuccess() {
     setState(() {
       _isSignedIn = true;
     });
@@ -236,7 +234,7 @@ class _EntryPageState extends State<EntryPage> {
                         setState(() {
                           _isSignedIn = false;
                         });
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Signed out')),
                         );
@@ -244,12 +242,12 @@ class _EntryPageState extends State<EntryPage> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) =>
-                                LoginPage(onLoginSuccess: _onLoginSuccess),
+                                SignInPage(onSuccessfulSignIn: _onSignInSuccess),
                           ),
                         );
                       }
                     },
-                    child: Text(_isSignedIn ? 'Sign Out' : 'Login'),
+                    child: Text(_isSignedIn ? 'Sign Out' : 'Sign In'),
                   ),
                 ),
                 Flexible(

@@ -1,17 +1,18 @@
+// File: lib/pages/signin_page.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatefulWidget {
-  final VoidCallback? onLoginSuccess;
+class SignInPage extends StatefulWidget {
+  final VoidCallback? onSuccessfulSignIn;
 
-  const LoginPage({super.key, this.onLoginSuccess});
+  const SignInPage({super.key, this.onSuccessfulSignIn});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignInPage> createState() => _SignPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignPageState extends State<SignInPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -25,20 +26,20 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Email validation (basic check for @ and domain)
+  // Email validation (basic check for @ and domain), max 128 characters.
   bool _isValidEmail(String email) {
     if (email.isEmpty) return false;
+    if (email.length > 128) return false;
     return RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email);
   }
 
-  // Password validation (no spaces or invalid characters)
+  // Password validation (no spaces or invalid characters), min 8 characters.
   bool _isValidPassword(String password) {
     if (password.isEmpty) return false;
-    return RegExp(
-      r'^(?=.*?[a-zA-Z])(?=.*?[0-9]).{8,}$',
-    ).hasMatch(password);
+    return RegExp(r'^(?=.*?[a-zA-Z])(?=.*?[0-9]).{8,}$').hasMatch(password);
   }
 
+  // Perform the web request to Firebase API to sign up a new user.
   Future<void> _signUp() async {
     setState(() {
       _isLoading = true;
@@ -60,7 +61,8 @@ class _LoginPageState extends State<LoginPage> {
     if (!_isValidPassword(password)) {
       setState(() {
         _isLoading = false;
-        _passwordError = 'Password must be at least 8 characters, with letters and numbers';
+        _passwordError =
+            'Password must be at least 8 characters, with letters and numbers';
       });
       return;
     }
@@ -77,27 +79,26 @@ class _LoginPageState extends State<LoginPage> {
           print('User signed up: ${userCredential.user!.uid}');
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signup successful!')),
-        );
-        widget.onLoginSuccess?.call();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Signup successful!')));
+        widget.onSuccessfulSignIn?.call();
         Navigator.of(context).pop();
       }
     } on FirebaseAuthException catch (e) {
+      // NOTE: reference the API at https://firebase.google.com/docs/auth/admin/errors
       setState(() {
         _isLoading = false;
         switch (e.code) {
-          case 'email-already-in-use':
+          case 'email-already-exists':
             _emailError = 'Email is already registered';
             break;
           case 'invalid-email':
             _emailError = 'Invalid email format';
             break;
-          case 'weak-password':
-            _passwordError = 'Password is too weak';
-            break;
           case 'unknown':
-            _emailError = 'Signup failed: Please check your network or try again later';
+            _emailError =
+                'Signup failed: Please check your network or try again later';
             break;
           default:
             _emailError = 'Error: ${e.message}';
@@ -113,7 +114,8 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _logIn() async {
+  // Perform a web request to Firebase API to sign in a user.
+  Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
       _emailError = null;
@@ -160,18 +162,19 @@ class _LoginPageState extends State<LoginPage> {
           print('User signed in: ${userCredential.user!.uid}');
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
-        );
-        widget.onLoginSuccess?.call();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sign successful!')));
+        widget.onSuccessfulSignIn?.call();
         Navigator.of(context).pop();
       }
     } on FirebaseAuthException catch (e) {
+      // NOTE: reference the API at https://firebase.google.com/docs/auth/admin/errors
       setState(() {
         _isLoading = false;
         switch (e.code) {
           case 'user-not-found':
-          case 'wrong-password':
+          case 'invalid-password':
             _passwordError = 'Invalid email or password';
             break;
           case 'invalid-email':
@@ -187,14 +190,14 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = false;
         _emailError = 'Failed to connect to Firebase. Please try again';
       });
-      if (kDebugMode) print('Login error: $e');
+      if (kDebugMode) print('Sign error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Sign')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -221,7 +224,9 @@ class _LoginPageState extends State<LoginPage> {
               obscureText: true,
             ),
             const SizedBox(height: 16.0),
-            _isLoading ? const Center(child: CircularProgressIndicator()) : const SizedBox.shrink(),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : const SizedBox.shrink(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
@@ -229,8 +234,8 @@ class _LoginPageState extends State<LoginPage> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _logIn,
-                      child: const Text('Login'),
+                      onPressed: _isLoading ? null : _signIn,
+                      child: const Text('Sign'),
                     ),
                   ),
                 ),
@@ -250,7 +255,7 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Continue without login'),
+              child: const Text('Continue without signing in'),
             ),
           ],
         ),

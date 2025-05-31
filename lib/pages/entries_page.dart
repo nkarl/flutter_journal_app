@@ -22,12 +22,15 @@ class _EntriesPageState extends State<EntriesPage> {
     _refreshEntries();
   }
 
+  // Perform a READ action to retrieve all entries from the user's JSON.
   void _refreshEntries() {
     setState(() {
       _entriesFuture = _storageService.readEntries();
     });
   }
 
+  // Perform a DELETE action using the Storage Service, removing an entrry
+  // from the user's JSON.
   Future<bool> _deleteEntry(String entryId, String title) async {
     final bool? isDeleting = await showDialog<bool>(
       context: context,
