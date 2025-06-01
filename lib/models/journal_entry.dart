@@ -9,6 +9,7 @@ class JournalEntry {
   final String? userId;
   final bool isSynced;
 
+  // Construct a new entry object.
   JournalEntry({
     required this.entryId,
     required this.title,
@@ -19,7 +20,7 @@ class JournalEntry {
     this.isSynced = false,
   });
 
-  // Convert entry to JSON
+  // Convert entry DTO to JSON
   Map<String, dynamic> toJson() => {
     'entryId': entryId,
     'title': title,
@@ -30,7 +31,10 @@ class JournalEntry {
     'isSynced': isSynced,
   };
 
-  // Create entry from JSON
+  // We use the factory pattern to create a single instance from JSON.
+  // Because an entries data file can be very large, we want a single
+  // object instance that persists throughout the app for more efficient
+  // memory use.
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
     entryId: json['entryId'],
     title: json['title'],

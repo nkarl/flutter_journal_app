@@ -4,13 +4,8 @@ A simple journal app with cloud Firebase integration.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project demonstrates a working Flutter application with two Firebase integrations: authentication (via username and password) and realtime database. This app is part of a curriculum that teaches students the basic of Dart and the Flutter framework.
 
-A few resources to get you started if this is your first Flutter project:
+The app lets a user write quick notes, view past notes and delete entries one by one.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The app also offers an option to sync user's journal entries as a single JSON file to a remote Firebase store. Otherwise, if the user does not want to, they can continue using the app offline with no impact from the remote sync function.

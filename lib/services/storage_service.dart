@@ -8,12 +8,13 @@ import 'package:journal_app/models/journal_entry.dart';
 import 'package:path_provider/path_provider.dart';
 
 class StorageService {
-  // Get the file path for `entries.json`
+  // Get the file path for `entries.json`.
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
     return directory.path;
   }
 
+  // Get the JSON file as a File object.
   Future<File> get _localFile async {
     final path = await _localPath;
     if (kDebugMode) {
@@ -170,6 +171,7 @@ class StorageService {
     }
   }
 
+  // Sync the JSON file to a remote Firebase store (if set up).
   Future<bool> syncToRealtimeDatabase() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -196,6 +198,7 @@ class StorageService {
     return false;
   }
 
+  // Get the local time stamp for creating or updating an entry.
   Future<DateTime> _getLocalTimestamp() async {
     final file = await _localFile;
     if (await file.exists()) {
