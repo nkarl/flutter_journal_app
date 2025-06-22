@@ -8,13 +8,13 @@ import 'package:journal_app/models/journal_entry.dart';
 import 'package:path_provider/path_provider.dart';
 
 class StorageService {
-  // Get the file path for `entries.json`.
+  /// Get the file path for `entries.json`.
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
     return directory.path;
   }
 
-  // Get the JSON file as a File object.
+  /// Get the JSON file as a File object.
   Future<File> get _localFile async {
     final path = await _localPath;
     if (kDebugMode) {
@@ -23,7 +23,7 @@ class StorageService {
     return File('$path/entries.json');
   }
 
-  // Initialize the JSON file with an empty list if it doesn't exist.
+  /// Initialize the JSON file with an empty list if it doesn't exist.
   Future<void> initializeFile() async {
     final file = await _localFile;
     if (!(await file.exists())) {
@@ -31,7 +31,7 @@ class StorageService {
     }
   }
 
-  // Save a journal entry to JSON.
+  /// Save a journal entry to JSON.
   Future<void> saveEntry(JournalEntry entry) async {
     final file = await _localFile;
     final String contents = await file.readAsString();
@@ -45,7 +45,7 @@ class StorageService {
     }
   }
 
-  // Read all journal entries from JSON.
+  /// Read all journal entries from JSON.
   Future<List<JournalEntry>> readEntries() async {
     try {
       final file = await _localFile;
@@ -75,7 +75,8 @@ class StorageService {
                   cloudData[key] = value;
                 }
               });
-              if (cloudData.containsKey('entries') && cloudData.containsKey('timestamp')) {
+              if (cloudData.containsKey('entries') &&
+                  cloudData.containsKey('timestamp')) {
                 final cloudTimestamp = DateTime.parse(
                   cloudData['timestamp'] as String? ?? '1970-01-01T00:00:00Z',
                 );
@@ -138,7 +139,7 @@ class StorageService {
     }
   }
 
-  // Delete a journal entry by Id.
+  /// Delete a journal entry by Id.
   Future<bool> deleteEntry(String entryId) async {
     var success = false;
     try {
@@ -171,7 +172,7 @@ class StorageService {
     }
   }
 
-  // Sync the JSON file to a remote Firebase store (if set up).
+  /// Sync the JSON file to a remote Firebase store (if set up).
   Future<bool> syncToRealtimeDatabase() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -198,7 +199,7 @@ class StorageService {
     return false;
   }
 
-  // Get the local time stamp for creating or updating an entry.
+  /// Get the local time stamp for creating or updating an entry.
   Future<DateTime> _getLocalTimestamp() async {
     final file = await _localFile;
     if (await file.exists()) {
